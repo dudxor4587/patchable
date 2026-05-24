@@ -79,8 +79,14 @@ Required (NOT NULL) fields use plain types. Optional (nullable) fields use `Patc
 ### 1. Add Dependency
 
 ```gradle
-implementation 'com.patchable:patchable:0.1.0-SNAPSHOT'
-annotationProcessor 'com.patchable:patchable:0.1.0-SNAPSHOT'
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation 'com.github.dudxor4587:patchable:v0.1.0'
+    annotationProcessor 'com.github.dudxor4587:patchable:v0.1.0'
+}
 ```
 
 ### 2. Define Patch DTO
