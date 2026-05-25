@@ -4,7 +4,7 @@
 
 **A Java library that eliminates PATCH boilerplate while preserving domain methods.**
 
-Auto-generates patchers like MapStruct, but calls domain methods instead of setters.
+Auto-generates patchers at compile time, calling domain methods directly.
 
 ## The Problem
 
@@ -19,7 +19,7 @@ member.updateMember(
 ```
 
 Existing solutions each force a compromise:
-- MapStruct / BeanUtils → **requires setters** (bypasses domain methods)
+- MapStruct / BeanUtils → **default behavior uses setters** (domain method invocation requires extra config)
 - JsonNullable → **wraps all DTO fields + boilerplate remains**
 - JSON Patch → **clients must send operation arrays**
 

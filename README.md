@@ -4,7 +4,7 @@
 
 **도메인 메서드를 보존하면서 PATCH 보일러플레이트를 없애는 Java 라이브러리.**
 
-MapStruct 처럼 자동 생성하되, setter 가 아니라 도메인 메서드를 호출합니다.
+컴파일 타임에 Patcher 를 자동 생성하고, 도메인 메서드를 직접 호출합니다.
 
 ## 왜 만들었나
 
@@ -22,7 +22,7 @@ member.updateMember(
 ```
 
 기존 해법들 (MapStruct, BeanUtils, JsonNullable 등) 은 각자 한 가지씩 양보를 요구합니다:
-- MapStruct / BeanUtils → **setter 강제** (도메인 메서드 우회)
+- MapStruct / BeanUtils → **기본 동작이 setter** (도메인 메서드 호출은 추가 설정 필요)
 - JsonNullable → **DTO 전체 wrapping + 보일러플레이트 잔존**
 - JSON Patch → **클라이언트가 명령 배열 작성**
 
