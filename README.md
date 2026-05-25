@@ -79,7 +79,7 @@ public record MemberProfilePatch(
 - DTO 필드 이름이 도메인 메서드 파라미터 이름과 일치해야 합니다 (Entity 가 같은 프로젝트에 있거나, 외부 jar 라면 `-parameters` 플래그로 컴파일 필요)
 - 이름이 다른 경우 (예: API 명세와 도메인 명명이 다를 때) presentation 레이어의 converter 에서 매핑 후 PatchDTO 를 만들어 넘기면 됩니다
 - 타입 변환은 라이브러리가 하지 않습니다 — 변환이 필요하면 converter 에서 처리 후 넘기세요 (단, int ↔ Integer 같은 boxing/unboxing 은 자동 처리)
-- **DTO 필드 집합과 동일한 시그니처의 도메인 메서드가 Entity 에 있어야 합니다** — 예를 들어 Entity 에 `updateMember(name, email, bio)` 가 있고 DTO 에 `(name, bio)` 만 있으면 매칭 실패. 부분 필드만 패치하려면 해당 시그니처의 도메인 메서드를 별도로 만들어야 합니다
+- **DTO 필드 집합과 동일한 시그니처의 도메인 메서드가 Entity 에 있어야 합니다** — 이것은 의도된 설계입니다. 도메인 메서드는 비즈니스 의도를 표현해야 하며, "모든 필드를 다 받는" 범용 메서드 하나로 모든 PATCH 를 처리하면 setter 집합과 다를 게 없어집니다. `updateProfile(name, bio)` 와 `updateContact(email, phone)` 처럼 의도별로 메서드를 분리하도록 유도합니다
 
 ## 사용법
 
