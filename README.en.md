@@ -75,7 +75,9 @@ Required (NOT NULL) fields use plain types. Optional (nullable) fields use `Patc
 - Entity must have JavaBean-style getters (`getXxx()`) — Lombok `@Getter` or hand-written
 - DTO field names must match domain method parameter names (entity must be in the same source tree, or compiled with `-parameters` flag if in an external jar)
 - If names differ (e.g., API naming vs domain naming), map them in a presentation-layer converter and pass the resulting PatchDTO to the patcher
-- The library does not perform type conversion — handle conversions in your converter before passing to the patcher
+- The library does not perform type conversion — handle conversions in your converter before passing to the patcher (boxing/unboxing like int ↔ Integer is handled automatically)
+- **The entity must have a domain method whose parameter set exactly matches the DTO's field set** — e.g., if entity has `updateMember(name, email, bio)` but DTO has only `(name, bio)`, matching fails. Create a dedicated domain method for partial field updates
+- Nested objects / embedded types are not supported for partial patching
 
 ## Usage
 

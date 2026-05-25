@@ -72,21 +72,13 @@ public class PatchOfProcessor extends AbstractProcessor {
 
     private List<DtoField> extractDtoFields(TypeElement dtoElement) {
         List<DtoField> fields = new ArrayList<>();
-        for (Element enclosed : dtoElement.getEnclosedElements()) {
-            if (enclosed instanceof ExecutableElement method
-                    && !method.getModifiers().contains(Modifier.STATIC)
-                    && method.getParameters().isEmpty()
-                    && !method.getSimpleName().toString().equals("toString")
-                    && !method.getSimpleName().toString().equals("hashCode")
-                    && !method.getSimpleName().toString().equals("equals")) {
+        for (var component : dtoElement.getRecordComponents()) {
+            String name = component.getSimpleName().toString();
+            TypeMirror type = component.asType();
+            boolean isPatchField = isPatchFieldType(type);
+            TypeMirror underlyingType = isPatchField ? extractPatchFieldInnerType(type) : type;
 
-                String name = method.getSimpleName().toString();
-                TypeMirror returnType = method.getReturnType();
-                boolean isPatchField = isPatchFieldType(returnType);
-                TypeMirror underlyingType = isPatchField ? extractPatchFieldInnerType(returnType) : returnType;
-
-                fields.add(new DtoField(name, returnType, underlyingType, isPatchField));
-            }
+            fields.add(new DtoField(name, type, underlyingType, isPatchField));
         }
         return fields;
     }
@@ -162,11 +154,29 @@ public class PatchOfProcessor extends AbstractProcessor {
         for (DtoField field : dtoFields) {
             TypeMirror paramType = paramMap.get(field.name());
             if (paramType == null) return false;
-            if (!processingEnv.getTypeUtils().isSameType(field.underlyingType(), paramType)) {
+            if (!isTypeCompatible(field.underlyingType(), paramType)) {
                 return false;
             }
         }
         return true;
+    }
+
+    private boolean isTypeCompatible(TypeMirror dtoType, TypeMirror paramType) {
+        if (processingEnv.getTypeUtils().isSameType(dtoType, paramType)) {
+            return true;
+        }
+        TypeMirror boxedDto = boxIfPrimitive(dtoType);
+        TypeMirror boxedParam = boxIfPrimitive(paramType);
+        return processingEnv.getTypeUtils().isSameType(boxedDto, boxedParam);
+    }
+
+    private TypeMirror boxIfPrimitive(TypeMirror type) {
+        if (type.getKind().isPrimitive()) {
+            return processingEnv.getTypeUtils().boxedClass(
+                    (javax.lang.model.type.PrimitiveType) type
+            ).asType();
+        }
+        return type;
     }
 
     private void generatePatcher(TypeElement dtoElement, TypeElement entityElement,
