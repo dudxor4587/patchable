@@ -52,10 +52,10 @@ JSON 의 세 상태를 정확히 표현합니다:
 ### 3. 도메인 nullability 기반 wrapping
 
 ```java
-@PatchOf(Member.class)
+@PatchOf(value = Member.class, method = "updateMember")
 public record MemberProfilePatch(
-    String name,                          // 필수 필드 — 2 상태 (skip / update)
-    PatchField<String> bio                // 옵셔널 필드 — 3 상태 (skip / update / delete)
+    String name,                          // plain — null 이면 기존 값 유지 (skip)
+    PatchField<String> bio                // 3 상태 — Unset(skip) / Value(update) / Delete(delete)
 ) {}
 ```
 
@@ -63,8 +63,8 @@ public record MemberProfilePatch(
 
 ## 동작 원리
 
-1. `@PatchOf(Member.class)` 가 붙은 DTO 를 컴파일 타임에 발견
-2. DTO 필드 이름과 타입으로 Entity 의 도메인 메서드를 자동 매칭 (시그니처 추론)
+1. `@PatchOf(value = Member.class, method = "updateMember")` 가 붙은 DTO 를 컴파일 타임에 발견
+2. `method` 에 지정된 이름으로 Entity 의 도메인 메서드를 찾고, DTO 필드 이름/타입으로 오버로딩을 구분
 3. 매칭된 메서드를 호출하는 Patcher 클래스 (`@Component`) 를 자동 생성
 4. 생성된 Patcher 를 Spring DI 로 주입해서 사용
 
@@ -73,7 +73,8 @@ public record MemberProfilePatch(
 - 메서드: `public void apply(Entity target, DTO source)`
 
 **제약:**
-- DTO 필드 이름이 도메인 메서드 파라미터 이름과 일치해야 합니다
+- Entity 에 JavaBean 스타일 getter (`getXxx()`) 가 필요합니다 (Lombok `@Getter` 또는 직접 작성)
+- DTO 필드 이름이 도메인 메서드 파라미터 이름과 일치해야 합니다 (Entity 가 같은 프로젝트에 있거나, 외부 jar 라면 `-parameters` 플래그로 컴파일 필요)
 - 이름이 다른 경우 (예: API 명세와 도메인 명명이 다를 때) presentation 레이어의 converter 에서 매핑 후 PatchDTO 를 만들어 넘기면 됩니다
 - 타입 변환은 라이브러리가 하지 않습니다 — 변환이 필요하면 converter 에서 처리 후 넘기세요
 
@@ -95,7 +96,7 @@ dependencies {
 ### 2. DTO 작성
 
 ```java
-@PatchOf(Member.class)
+@PatchOf(value = Member.class, method = "updateMember")
 public record MemberProfilePatch(
     String name,
     String email,
@@ -124,11 +125,13 @@ public class MemberService {
 
 | 항목 | MapStruct | JsonNullable | Patchable |
 |------|-----------|-------------|-----------|
-| 호출 대상 | setter | 도메인 메서드 (수동) | **도메인 메서드 (자동)** |
-| 도메인 불변식 보존 | ❌ | 사용자 책임 | **✅** |
-| 3 상태 지원 | ❌ | ✅ | **✅** |
-| Entity setter 필요 | 필요 | 불필요 | **불필요** |
-| 보일러플레이트 | 없음 | 있음 | **없음** |
+| 기본 호출 대상 | setter (기본). expression 으로 도메인 메서드 호출 가능 | 사용자가 직접 호출 | **도메인 메서드 (자동)** |
+| 도메인 불변식 | 기본 setter 사용 시 우회됨 | 사용자 책임 | **도메인 메서드가 검증 — 라이브러리는 전달만** |
+| 3 상태 지원 | ❌ | ✅ (필드별 opt-in) | **✅ (필드별 opt-in)** |
+| Entity setter 필요 | 기본 동작에 필요 | 불필요 | **불필요** |
+| 보일러플레이트 | 매퍼 인터페이스 필요 | 서비스에서 분기 코드 필요 | **`@PatchOf` 한 줄** |
+
+> **참고:** "도메인 불변식 보존" 은 라이브러리가 검증을 수행한다는 뜻이 아닙니다. 라이브러리는 값을 도메인 메서드에 전달만 하고, 검증은 도메인 메서드 내부의 로직이 수행합니다. 도메인 메서드를 우회하지 않기 때문에 검증이 동작하는 것입니다.
 
 ## 요구사항
 

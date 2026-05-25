@@ -23,6 +23,8 @@ dependencies {
     compileOnly 'org.springframework.boot:spring-boot-autoconfigure:3.5.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testImplementation 'org.springframework:spring-context:6.2.7'
+    testImplementation 'com.google.testing.compile:compile-testing:0.21.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

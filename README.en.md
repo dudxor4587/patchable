@@ -49,10 +49,10 @@ Accurately maps JSON's three states:
 ### 3. Nullability-Driven Wrapping
 
 ```java
-@PatchOf(Member.class)
+@PatchOf(value = Member.class, method = "updateMember")
 public record MemberProfilePatch(
-    String name,                          // required field — 2 states (skip / update)
-    PatchField<String> bio                // optional field — 3 states (skip / update / delete)
+    String name,                          // plain — null means keep current value (skip)
+    PatchField<String> bio                // 3-state — Unset(skip) / Value(update) / Delete(delete)
 ) {}
 ```
 
@@ -60,8 +60,8 @@ Required (NOT NULL) fields use plain types. Optional (nullable) fields use `Patc
 
 ## How It Works
 
-1. Discovers DTOs annotated with `@PatchOf(Member.class)` at compile time
-2. Matches DTO fields to entity's domain method parameters by name and type (signature inference)
+1. Discovers DTOs annotated with `@PatchOf(value = Member.class, method = "updateMember")` at compile time
+2. Finds the entity's domain method by `method` name, resolves overloads by DTO field names and types
 3. Generates a Patcher class (`@Component`) that calls the matched domain method
 4. Inject the generated Patcher via Spring DI
 
@@ -70,7 +70,8 @@ Required (NOT NULL) fields use plain types. Optional (nullable) fields use `Patc
 - Method: `public void apply(Entity target, DTO source)`
 
 **Constraints:**
-- DTO field names must match domain method parameter names
+- Entity must have JavaBean-style getters (`getXxx()`) — Lombok `@Getter` or hand-written
+- DTO field names must match domain method parameter names (entity must be in the same source tree, or compiled with `-parameters` flag if in an external jar)
 - If names differ (e.g., API naming vs domain naming), map them in a presentation-layer converter and pass the resulting PatchDTO to the patcher
 - The library does not perform type conversion — handle conversions in your converter before passing to the patcher
 
@@ -92,7 +93,7 @@ dependencies {
 ### 2. Define Patch DTO
 
 ```java
-@PatchOf(Member.class)
+@PatchOf(value = Member.class, method = "updateMember")
 public record MemberProfilePatch(
     String name,
     String email,
@@ -121,11 +122,13 @@ public class MemberService {
 
 | Feature | MapStruct | JsonNullable | Patchable |
 |---------|-----------|-------------|-----------|
-| Invocation target | setters | domain methods (manual) | **domain methods (auto)** |
-| Domain invariants | ❌ bypassed | user's responsibility | **✅ preserved** |
-| 3-state support | ❌ | ✅ | **✅** |
-| Requires setters on entity | yes | no | **no** |
-| Boilerplate | none | remains | **none** |
+| Default invocation | setters (can call domain methods via expression) | user calls manually | **domain methods (auto)** |
+| Domain invariants | bypassed with default setters | user's responsibility | **domain method validates — library only passes values** |
+| 3-state support | ❌ | ✅ (per-field opt-in) | **✅ (per-field opt-in)** |
+| Requires setters on entity | for default behavior | no | **no** |
+| Boilerplate | mapper interface required | branch code in service | **`@PatchOf` one line** |
+
+> **Note:** "Domain invariants preserved" means the library does not bypass domain methods — it delegates to them. Validation is performed by your domain method, not by the library. If invalid values are passed, the domain method throws as it normally would.
 
 ## Requirements
 

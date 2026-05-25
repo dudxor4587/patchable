@@ -49,10 +49,12 @@ public class PatchOfProcessor extends AbstractProcessor {
             return;
         }
 
+        String methodName = dtoElement.getAnnotation(PatchOf.class).method();
+
         List<DtoField> dtoFields = extractDtoFields(dtoElement);
         if (dtoFields.isEmpty()) return;
 
-        ExecutableElement matchedMethod = findMatchingMethod(entityElement, dtoFields, dtoElement);
+        ExecutableElement matchedMethod = findMatchingMethod(entityElement, methodName, dtoFields, dtoElement);
         if (matchedMethod == null) return;
 
         generatePatcher(dtoElement, entityElement, matchedMethod, dtoFields);
@@ -107,16 +109,24 @@ public class PatchOfProcessor extends AbstractProcessor {
         return patchFieldType;
     }
 
-    private ExecutableElement findMatchingMethod(TypeElement entityElement, List<DtoField> dtoFields, TypeElement dtoElement) {
+    private ExecutableElement findMatchingMethod(TypeElement entityElement, String methodName,
+                                                   List<DtoField> dtoFields, TypeElement dtoElement) {
         List<ExecutableElement> candidates = new ArrayList<>();
 
         for (Element enclosed : entityElement.getEnclosedElements()) {
             if (!(enclosed instanceof ExecutableElement method)) continue;
-            if (method.getModifiers().contains(Modifier.STATIC)) continue;
-            if (method.getModifiers().contains(Modifier.PRIVATE)) continue;
-            if (method.getSimpleName().toString().equals("<init>")) continue;
+            if (!method.getSimpleName().toString().equals(methodName)) continue;
 
             List<? extends VariableElement> params = method.getParameters();
+
+            if (hasSyntheticParamNames(params)) {
+                error(dtoElement,
+                        "Parameter names of '%s' in %s are synthetic (arg0, arg1, ...). " +
+                        "Compile the entity with -parameters flag or ensure it is in the same source tree.",
+                        methodName, entityElement.getSimpleName());
+                return null;
+            }
+
             if (params.size() != dtoFields.size()) continue;
 
             if (allDtoFieldsMatchParams(dtoFields, params)) {
@@ -130,19 +140,17 @@ public class PatchOfProcessor extends AbstractProcessor {
                 if (!fieldNames.isEmpty()) fieldNames.append(", ");
                 fieldNames.append(f.name());
             }
-            error(dtoElement, "No matching method found in %s for fields [%s] of %s",
-                    entityElement.getSimpleName(), fieldNames, dtoElement.getSimpleName());
-            return null;
-        }
-
-        if (candidates.size() > 1) {
-            error(dtoElement, "Ambiguous: multiple methods in %s match fields of %s: %s",
-                    entityElement.getSimpleName(), dtoElement.getSimpleName(),
-                    candidates.stream().map(m -> m.getSimpleName().toString()).toList());
+            error(dtoElement, "No method '%s' in %s matching fields [%s] of %s",
+                    methodName, entityElement.getSimpleName(), fieldNames, dtoElement.getSimpleName());
             return null;
         }
 
         return candidates.get(0);
+    }
+
+    private boolean hasSyntheticParamNames(List<? extends VariableElement> params) {
+        if (params.isEmpty()) return false;
+        return params.get(0).getSimpleName().toString().matches("arg\\d+");
     }
 
     private boolean allDtoFieldsMatchParams(List<DtoField> dtoFields, List<? extends VariableElement> params) {
@@ -155,9 +163,7 @@ public class PatchOfProcessor extends AbstractProcessor {
             TypeMirror paramType = paramMap.get(field.name());
             if (paramType == null) return false;
             if (!processingEnv.getTypeUtils().isSameType(field.underlyingType(), paramType)) {
-                if (!processingEnv.getTypeUtils().isAssignable(field.underlyingType(), paramType)) {
-                    return false;
-                }
+                return false;
             }
         }
         return true;
