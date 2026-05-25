@@ -81,6 +81,7 @@ Required (NOT NULL) fields use plain types. Optional (nullable) fields use `Patc
 
 ### 1. Add Dependency
 
+**Gradle (Groovy)**
 ```gradle
 repositories {
     maven { url 'https://jitpack.io' }
@@ -92,7 +93,53 @@ dependencies {
 }
 ```
 
-> For other build tools (Maven, Kotlin DSL, etc.), see the [JitPack page](https://jitpack.io/#dudxor4587/patchable).
+**Gradle (Kotlin DSL)**
+```kotlin
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
+dependencies {
+    implementation("com.github.dudxor4587:patchable:v0.1.0")
+    annotationProcessor("com.github.dudxor4587:patchable:v0.1.0")
+}
+```
+
+**Maven**
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>com.github.dudxor4587</groupId>
+        <artifactId>patchable</artifactId>
+        <version>v0.1.0</version>
+    </dependency>
+</dependencies>
+
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+                <annotationProcessorPaths>
+                    <path>
+                        <groupId>com.github.dudxor4587</groupId>
+                        <artifactId>patchable</artifactId>
+                        <version>v0.1.0</version>
+                    </path>
+                </annotationProcessorPaths>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
 
 ### 2. Define Patch DTO
 

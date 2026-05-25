@@ -84,6 +84,7 @@ public record MemberProfilePatch(
 
 ### 1. 의존성 추가
 
+**Gradle (Groovy)**
 ```gradle
 repositories {
     maven { url 'https://jitpack.io' }
@@ -95,7 +96,53 @@ dependencies {
 }
 ```
 
-> 다른 빌드 도구 (Maven, Kotlin DSL 등) 는 [JitPack 페이지](https://jitpack.io/#dudxor4587/patchable) 에서 확인하세요.
+**Gradle (Kotlin DSL)**
+```kotlin
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
+dependencies {
+    implementation("com.github.dudxor4587:patchable:v0.1.0")
+    annotationProcessor("com.github.dudxor4587:patchable:v0.1.0")
+}
+```
+
+**Maven**
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>com.github.dudxor4587</groupId>
+        <artifactId>patchable</artifactId>
+        <version>v0.1.0</version>
+    </dependency>
+</dependencies>
+
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+                <annotationProcessorPaths>
+                    <path>
+                        <groupId>com.github.dudxor4587</groupId>
+                        <artifactId>patchable</artifactId>
+                        <version>v0.1.0</version>
+                    </path>
+                </annotationProcessorPaths>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
 
 ### 2. DTO 작성
 
