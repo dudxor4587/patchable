@@ -437,6 +437,40 @@ class PatchOfProcessorTest {
     }
 
     @Test
+    @DisplayName("primitive boolean 필드는 isXxx getter 로 접근한다")
+    void should_use_is_getter_for_primitive_boolean() {
+        JavaFileObject entity = JavaFileObjects.forSourceString("com.test.Toggle", """
+                package com.test;
+                public class Toggle {
+                    private String name;
+                    private boolean active;
+                    public String getName() { return name; }
+                    public boolean isActive() { return active; }
+                    public void update(String name, boolean active) {
+                        this.name = name;
+                        this.active = active;
+                    }
+                }
+                """);
+
+        JavaFileObject dto = JavaFileObjects.forSourceString("com.test.TogglePatch", """
+                package com.test;
+                import com.patchable.api.PatchOf;
+                @PatchOf(value = Toggle.class, method = "update")
+                public record TogglePatch(String name, Boolean active) {}
+                """);
+
+        Compilation compilation = javac()
+                .withProcessors(new PatchOfProcessor())
+                .compile(entity, dto);
+
+        assertThat(compilation).succeeded();
+        assertThat(compilation).generatedSourceFile("com.test.TogglePatchPatcher")
+                .contentsAsUtf8String()
+                .contains("target.isActive()");
+    }
+
+    @Test
     @DisplayName("DTO 필드 타입과 메서드 파라미터 타입이 다르면 컴파일 에러")
     void should_error_on_type_mismatch() {
         JavaFileObject entity = JavaFileObjects.forSourceString("com.test.Member", """

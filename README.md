@@ -93,7 +93,8 @@ public record MemberProfilePatch(
 - 메서드: `public void apply(Entity target, DTO source)`
 
 **제약:**
-- Entity 에 JavaBean 스타일 getter (`getXxx()`) 가 필요합니다 (Lombok `@Getter` 또는 직접 작성)
+- `@PatchOf` DTO 는 record 여야 합니다 (필드를 record component 로 분석)
+- Entity 에 JavaBean 스타일 getter 가 필요합니다 (`getXxx()`, primitive `boolean` 은 `isXxx()`, Lombok `@Getter` 또는 직접 작성)
 - DTO 필드 이름이 도메인 메서드 파라미터 이름과 일치해야 합니다 (Entity 가 같은 프로젝트에 있거나, 외부 jar 라면 `-parameters` 플래그로 컴파일 필요)
 - 이름이 다른 경우 (예: API 명세와 도메인 명명이 다를 때) presentation 레이어의 converter 에서 매핑 후 PatchDTO 를 만들어 넘기면 됩니다
 - 타입 변환은 라이브러리가 하지 않습니다 — 변환이 필요하면 converter 에서 처리 후 넘기세요 (단, int ↔ Integer 같은 boxing/unboxing 은 자동 처리)
@@ -112,18 +113,6 @@ repositories {
 dependencies {
     implementation 'com.github.dudxor4587:patchable:v0.1.0'
     annotationProcessor 'com.github.dudxor4587:patchable:v0.1.0'
-}
-```
-
-**Gradle (Kotlin DSL)**
-```kotlin
-repositories {
-    maven { url = uri("https://jitpack.io") }
-}
-
-dependencies {
-    implementation("com.github.dudxor4587:patchable:v0.1.0")
-    annotationProcessor("com.github.dudxor4587:patchable:v0.1.0")
 }
 ```
 

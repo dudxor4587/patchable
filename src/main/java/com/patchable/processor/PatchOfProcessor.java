@@ -10,6 +10,7 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.RecordComponentElement;
@@ -17,6 +18,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
@@ -233,17 +235,18 @@ public class PatchOfProcessor extends AbstractProcessor {
             VariableElement param = methodParams.get(i);
             String paramName = param.getSimpleName().toString();
             DtoField dtoField = dtoFieldMap.get(paramName);
+            String getter = "target." + accessorName(entityElement, paramName) + "()";
 
             if (i > 0) body.append(",\n");
 
             if (dtoField != null && dtoField.isPatchField()) {
                 body.append("                resolve(source.").append(paramName)
-                        .append("(), target.get").append(capitalize(paramName)).append("())");
+                        .append("(), ").append(getter).append(")");
             } else if (dtoField != null) {
                 body.append("                source.").append(paramName).append("() != null ? source.")
-                        .append(paramName).append("() : target.get").append(capitalize(paramName)).append("()");
+                        .append(paramName).append("() : ").append(getter);
             } else {
-                body.append("                target.get").append(capitalize(paramName)).append("()");
+                body.append("                ").append(getter);
             }
         }
 
@@ -296,6 +299,32 @@ public class PatchOfProcessor extends AbstractProcessor {
     private String capitalize(String s) {
         if (s == null || s.isEmpty()) return s;
         return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
+    // JavaBean/Lombok 규약상 primitive boolean 필드의 getter 는 isXxx, 그 외(Boolean 래퍼 포함)는 getXxx.
+    // Lombok 이 생성한 getter 는 AP 라운드 순서상 안 보일 수 있으므로, 항상 보이는 필드 타입으로 판별한다.
+    private String accessorName(TypeElement entityElement, String propertyName) {
+        String prefix = isPrimitiveBooleanField(entityElement, propertyName) ? "is" : "get";
+        return prefix + capitalize(propertyName);
+    }
+
+    private boolean isPrimitiveBooleanField(TypeElement entityElement, String propertyName) {
+        TypeElement current = entityElement;
+        while (current != null) {
+            for (Element enclosed : current.getEnclosedElements()) {
+                if (enclosed.getKind() == ElementKind.FIELD
+                        && enclosed.getSimpleName().contentEquals(propertyName)) {
+                    return enclosed.asType().getKind() == TypeKind.BOOLEAN;
+                }
+            }
+            TypeMirror superclass = current.getSuperclass();
+            if (superclass instanceof DeclaredType dt && dt.asElement() instanceof TypeElement superElement) {
+                current = superElement;
+            } else {
+                current = null;
+            }
+        }
+        return false;
     }
 
     private void error(Element element, String message, Object... args) {

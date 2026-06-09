@@ -90,7 +90,8 @@ public record MemberProfilePatch(
 - Method: `public void apply(Entity target, DTO source)`
 
 **Constraints:**
-- Entity must have JavaBean-style getters (`getXxx()`) — Lombok `@Getter` or hand-written
+- The `@PatchOf` DTO must be a record (fields are analyzed via record components)
+- Entity must have JavaBean-style getters (`getXxx()`, or `isXxx()` for primitive `boolean`); Lombok `@Getter` or hand-written
 - DTO field names must match domain method parameter names (entity must be in the same source tree, or compiled with `-parameters` flag if in an external jar)
 - If names differ (e.g., API naming vs domain naming), map them in a presentation-layer converter and pass the resulting PatchDTO to the patcher
 - The library does not perform type conversion — handle conversions in your converter before passing to the patcher (boxing/unboxing like int ↔ Integer is handled automatically)
@@ -109,18 +110,6 @@ repositories {
 dependencies {
     implementation 'com.github.dudxor4587:patchable:v0.1.0'
     annotationProcessor 'com.github.dudxor4587:patchable:v0.1.0'
-}
-```
-
-**Gradle (Kotlin DSL)**
-```kotlin
-repositories {
-    maven { url = uri("https://jitpack.io") }
-}
-
-dependencies {
-    implementation("com.github.dudxor4587:patchable:v0.1.0")
-    annotationProcessor("com.github.dudxor4587:patchable:v0.1.0")
 }
 ```
 
